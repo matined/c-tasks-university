@@ -91,7 +91,7 @@ void deck_destroy(Deck *d) {
 }
 
 DeckElem *deck_unlink_last(Deck *d) {
-    if (d->tail == NULL) return NULL;  // an empty deck
+    if (d->head == NULL) return NULL;  // an empty deck
     if (d->head->next == NULL) {       // one element
         DeckElem *unlinked_card = d->head;
         d->head = NULL;
@@ -114,14 +114,55 @@ void deck_reverse(Deck *d) {
     *d = result;
 }
 
-void deck_prepend(Deck *dst, Deck *src);
+void deck_prepend(Deck *dst, Deck *src) {
+    if (src->head == NULL) return;  // an empty src
+    if (dst->head == NULL) {        // an empty dst
+        dst->head = src->head;
+        dst->tail = src->tail;
+        src->head = NULL;
+        src->tail = NULL;
+        return;
+    }
+    dst->head->prev = src->tail;
+    src->tail->next = dst->head;
+    dst->head = src->head;
 
-Deck deck_build();
+    src->head = NULL;
+    src->tail = NULL;
+}
 
-void deck_deal(Deck *d, Deck hands[], unsigned count);
+Deck deck_build() {
+    Deck result = {NULL, NULL};
+    for (char rank = 9; rank <= 14; rank++) {
+        for (char suit = 1; suit <= 4; suit++) {
+            DeckElem *deck_element = deck_create_elem(card_init(suit, rank));
+            if (deck_element == NULL) return result;
+            deck_append_elem(&result, deck_element);
+        }
+    }
+    return result;
+}
+
+void deck_deal(Deck *d, Deck hands[], unsigned count) {
+    if (d->head == NULL) return;
+    DeckElem *current = deck_unlink_last(d);
+    int i = 0;
+    while (current != NULL) {
+        deck_append_elem(hands + (i % count), current);
+        current = deck_unlink_last(d);
+        i++;
+    }
+}
 
 #define MAX_HANDS 10
-void deck_shuffle(Deck *d);
+void deck_shuffle(Deck *d) {
+    Deck hands[MAX_HANDS] = {{NULL, NULL}};
+    int count = rand() % (MAX_HANDS - 1) + 2;
+    deck_deal(d, hands, count);
+    for (int i = MAX_HANDS - 1; i >= 0; i--) {
+        deck_prepend(d, hands + i);
+    }
+}
 
 int main(void) {
     // For Part 1 remember to uncomment two additional lines between Parts 2 and
@@ -156,57 +197,47 @@ int main(void) {
     deck_destroy(&d);
     check(d.head == NULL && d.tail == NULL, "Deck should be empty");
 
-    /*
     puts("\n**********************Part 3**********************");
-    for (i = 0; i < 3; ++i)
-    {
-            Deck d2 = { NULL, NULL };
-            int j = rand() % 10 + 1;
-            while (j--)
-            {
-                    DeckElem *tmp = deck_create_elem(card_random());
-                    deck_append_elem(&d2, tmp);
-            }
-            printf("d2: ");
-            deck_print(&d2);
-            puts("Prepending d2 to d");
-            deck_prepend(&d, &d2);
-            printf("d : ");
-            deck_print(&d);
-            check(d2.head == NULL && d2.tail == NULL, "Second deck should be
-    empty");
+    for (i = 0; i < 3; ++i) {
+        Deck d2 = {NULL, NULL};
+        int j = rand() % 10 + 1;
+        while (j--) {
+            DeckElem *tmp = deck_create_elem(card_random());
+            deck_append_elem(&d2, tmp);
+        }
+        printf("d2: ");
+        deck_print(&d2);
+        puts("Prepending d2 to d");
+        deck_prepend(&d, &d2);
+        printf("d : ");
+        deck_print(&d);
+        check(d2.head == NULL && d2.tail == NULL,
+              "Second deck should be empty");
     }
     deck_destroy(&d);
 
     puts("Building deck...");
     d = deck_build();
     deck_print(&d);
-    */
 
-    /*
     puts("\n**********************Part 4**********************");
     puts("Dealing cards...");
-    Deck hands[3] = { {NULL, NULL} };
+    Deck hands[3] = {{NULL, NULL}};
     deck_deal(&d, hands, 3);
-    for (i = 0; i < 3; ++i)
-    {
-            printf("Hand %d: ", i + 1);
-            deck_print(hands + i);
-            deck_destroy(hands + i);
+    for (i = 0; i < 3; ++i) {
+        printf("Hand %d: ", i + 1);
+        deck_print(hands + i);
+        deck_destroy(hands + i);
     }
     check(d.head == NULL && d.tail == NULL, "First deck should be empty");
-    */
 
-    /*
     puts("\n**********************Part 5**********************");
     d = deck_build();
     deck_print(&d);
     puts("Shuffling 10 times...");
-    for (i = 0; i < 10; ++i)
-            deck_shuffle(&d);
+    for (i = 0; i < 10; ++i) deck_shuffle(&d);
     deck_print(&d);
     deck_destroy(&d);
-    */
 
     return 0;
 }
